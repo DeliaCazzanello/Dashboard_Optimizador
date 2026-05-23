@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(node -e \"import\\('./node_modules/react-icons/lu/index.js'\\).then\\(m => { const names = Object.keys\\(m\\).filter\\(k => ['LuWifi','LuMonitor','LuSpeaker','LuRefrigerator','LuShowerHead','LuTimer','LuBatteryCharging','LuFan'].includes\\(k\\)\\); console.log\\(names.join\\('\\\\n'\\)\\); }\\)\")",
+      "Bash(pkill -f \"vite\")",
+      "Bash(npx vite *)"
+    ]
+  }
+}
