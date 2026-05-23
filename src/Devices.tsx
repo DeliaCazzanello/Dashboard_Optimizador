@@ -341,11 +341,6 @@ function MobileHeader({ isDark, onToggle }: { isDark: boolean; onToggle: () => v
       justifyContent:"space-between", padding:"0 20px",
       background:t.sidebarBg, borderBottom:`1px solid ${t.sidebarBorder}`,
     }}>
-      <div style={{width:36, height:36, borderRadius:8, display:"flex", flexDirection:"column",
-        alignItems:"center", justifyContent:"center", gap:5, cursor:"pointer",
-        background:t.bellBg, border:`1px solid ${t.bellBorder}`}}>
-        {[0,1,2].map(i => <div key={i} style={{width:18,height:2,borderRadius:1,background:t.textTertiary}}/>)}
-      </div>
       <div style={{display:"flex", alignItems:"center", gap:8}}>
         <div style={{width:28, height:28, borderRadius:6, display:"flex", alignItems:"center",
           justifyContent:"center", background:"linear-gradient(135deg,#3B82F6 0%,#06B6D4 100%)"}}>
@@ -354,10 +349,6 @@ function MobileHeader({ isDark, onToggle }: { isDark: boolean; onToggle: () => v
         <span style={{fontSize:16, fontWeight:700, color:t.textPrimary}}>EnergyIQ</span>
       </div>
       <div style={{display:"flex", alignItems:"center", gap:8}}>
-        <div style={{width:34, height:34, borderRadius:8, display:"flex", alignItems:"center",
-          justifyContent:"center", background:t.bellBg, border:`1px solid ${t.bellBorder}`}}>
-          <LuBell size={16} color={t.textTertiary}/>
-        </div>
         <div onClick={onToggle} style={{
           position:"relative", width:44, height:24, borderRadius:12, cursor:"pointer",
           background:t.pillBg, border:`1px solid ${t.pillBorder}`,
