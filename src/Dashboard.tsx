@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import type { AppPage } from './theme';
+import { useEffect, useState } from "react";
+import { useNavigate } from 'react-router-dom';
+import { ThemeCtx, useT, useThemeToggle, type AppPage, type Theme, pageToPath } from './theme';
 import { Chart } from "react-google-charts";
 import {
   LuZap, LuGauge, LuCpu, LuChartBar, LuZapOff,
@@ -20,111 +21,6 @@ const HEADER_H = 56;
 const BOTTOM_H = 412;
 const DROW_H   = 165;
 
-// ─── Theme ───────────────────────────────────────────────────────
-
-const dark = {
-  pageBg:             "#0F1117",
-  sidebarBg:          "#161B27",
-  sidebarBorder:      "#1E2A3D",
-  cardBg:             "#1A2035",
-  cardBorder:         "#1E2A3D",
-  kpiGradient:        "linear-gradient(135deg,#1A2035 0%,#162440 100%)",
-  textPrimary:        "#FFFFFF",
-  textSecondary:      "#9CA3AF",
-  textTertiary:       "#6B7280",
-  navActiveBg:        "#1E3A5F",
-  navActiveText:      "#FFFFFF",
-  navActiveIcon:      "#3B82F6",
-  navInactiveText:    "#9CA3AF",
-  navInactiveIcon:    "#6B7280",
-  mNavActiveBg:       "#3B82F620",
-  deviceOnBg:         "#0D1F35",
-  deviceOnBorder:     "#1E3A5F",
-  deviceOffBg:        "#151C2C",
-  deviceOffBorder:    "#1E2535",
-  deviceOffDot:       "#374151",
-  deviceOffText:      "#4B5563",
-  ruleItemBg:         "#1A2035",
-  ruleIconBg:         "#0F1117",
-  ruleIconActiveBg:   "#0D2030",
-  ruleIconInactiveBg: "#1A2035",
-  badgeKpiBg:         "#0D2818",
-  badgeKpiColor:      "#10B981",
-  badgeActiveBg:      "#0D2818",
-  badgeActiveColor:   "#10B981",
-  badgeInactiveBg:    "#1F2937",
-  badgeInactiveColor: "#6B7280",
-  barTrack:           "#1E2D45",
-  chartGridline:      "#1E2A3D",
-  chartAxisText:      "#6B7280",
-  legendText:         "#9CA3AF",
-  legendValue:        "#D1D5DB",
-  pillBg:             "#1E2D45",
-  pillBorder:         "#2D3D55",
-  toggleOffBg:        "#374151",
-  alertIconBg:        "#2D1F00",
-  bellBg:             "#1A2035",
-  bellBorder:         "#1E2A3D",
-  alertBg:            "#1A2035",
-  consumoText:        "#64748B",
-  efficiencyBg:       "#1A2035",
-  mKpiGrad:           ["#1E3A5F","#1A1F35","#1A3328","#2D2010"] as string[],
-  logoBg:             "#161B27",
-};
-
-const light: typeof dark = {
-  pageBg:             "#F1F5F9",
-  sidebarBg:          "#F1F5F9",
-  sidebarBorder:      "#E2E8F0",
-  cardBg:             "#FFFFFF",
-  cardBorder:         "#E2E8F0",
-  kpiGradient:        "linear-gradient(135deg,#FFFFFF 0%,#EFF6FF 100%)",
-  textPrimary:        "#111827",
-  textSecondary:      "#6B7280",
-  textTertiary:       "#94A3B8",
-  navActiveBg:        "#EFF6FF",
-  navActiveText:      "#1D4ED8",
-  navActiveIcon:      "#3B82F6",
-  navInactiveText:    "#6B7280",
-  navInactiveIcon:    "#9CA3AF",
-  mNavActiveBg:       "#DBEAFE",
-  deviceOnBg:         "#EFF6FF",
-  deviceOnBorder:     "#BFDBFE",
-  deviceOffBg:        "#F9FAFB",
-  deviceOffBorder:    "#E5E7EB",
-  deviceOffDot:       "#CBD5E1",
-  deviceOffText:      "#9CA3AF",
-  ruleItemBg:         "#F8FAFC",
-  ruleIconBg:         "#F3F4F6",
-  ruleIconActiveBg:   "#DBEAFE",
-  ruleIconInactiveBg: "#F3F4F6",
-  badgeKpiBg:         "#DCFCE7",
-  badgeKpiColor:      "#059669",
-  badgeActiveBg:      "#DCFCE7",
-  badgeActiveColor:   "#059669",
-  badgeInactiveBg:    "#F3F4F6",
-  badgeInactiveColor: "#9CA3AF",
-  barTrack:           "#E2E8F0",
-  chartGridline:      "#E2E8F0",
-  chartAxisText:      "#9CA3AF",
-  legendText:         "#6B7280",
-  legendValue:        "#374151",
-  pillBg:             "#FEF9C3",
-  pillBorder:         "#FDE68A",
-  toggleOffBg:        "#CBD5E1",
-  alertIconBg:        "#FEF3C7",
-  bellBg:             "#FFFFFF",
-  bellBorder:         "#E2E8F0",
-  alertBg:            "#FFFFFF",
-  consumoText:        "#94A3B8",
-  efficiencyBg:       "#F0FDF4",
-  mKpiGrad:           ["#DBEAFE","#EFF6FF","#DCFCE7","#FEF3C7"] as string[],
-  logoBg:             "#FFFFFF",
-};
-
-type Theme = typeof dark;
-const ThemeCtx = createContext<Theme>(dark);
-const useT = () => useContext(ThemeCtx);
 
 // ─── Chart data ──────────────────────────────────────────────────
 
@@ -550,16 +446,13 @@ function MobileContent({ devices, toggleDevice }: {
 
 // ─── Dashboard ────────────────────────────────────────────────────
 
-export default function Dashboard({ onNavigate }: { onNavigate?: (page: AppPage) => void } = {}) {
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('eq-theme') !== 'light');
+export default function Dashboard() {
+  const { isDark, toggle } = useThemeToggle();
+  const t = useT();
+  const navigate = useNavigate();
+  const goTo = (page: AppPage) => navigate(pageToPath[page]);
   const [devices, setDevices] = useState(initDevices);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  const t = isDark ? dark : light;
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('eq-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -574,7 +467,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: AppPage)
   const lineOpts = mkLineOpts(t);
 
   return (
-    <ThemeCtx.Provider value={t}>
+    <>
       <div data-theme={isDark?"dark":"light"} style={{
         display:"flex",
         flexDirection:isMobile?"column":"row",
@@ -584,13 +477,13 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: AppPage)
 
         {isMobile ? (
           <>
-            <MobileHeader isDark={isDark} onToggle={() => setIsDark(p => !p)}/>
+            <MobileHeader isDark={isDark} onToggle={toggle}/>
             <MobileContent devices={devices} toggleDevice={toggleDevice}/>
-            <MobileBottomNav active="dashboard" onNavigate={onNavigate}/>
+            <MobileBottomNav active="dashboard" onNavigate={goTo}/>
           </>
         ) : (
           <>
-            <Sidebar active="dashboard" onNavigate={onNavigate}/>
+            <Sidebar active="dashboard" onNavigate={goTo}/>
 
             <main style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",
               padding:PADDING,gap:GAP}}>
@@ -609,7 +502,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: AppPage)
                     background:t.bellBg,border:`1px solid ${t.bellBorder}`}}>
                     <LuBell size={15} color={t.textTertiary}/>
                   </div>
-                  <div onClick={() => setIsDark(p => !p)} style={{
+                  <div onClick={toggle} style={{
                     position:"relative",width:52,height:28,borderRadius:14,flexShrink:0,
                     background:t.pillBg,border:`1px solid ${t.pillBorder}`,cursor:"pointer",
                   }}>
@@ -797,6 +690,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: AppPage)
           </>
         )}
       </div>
-    </ThemeCtx.Provider>
+    </>
   );
 }

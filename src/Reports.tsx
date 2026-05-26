@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   LuZap, LuGauge, LuCpu, LuChartBar, LuZapOff,
   LuBell, LuMoon, LuSun, LuUser,
   LuTrendingDown, LuDollarSign,
 } from 'react-icons/lu';
-import { dark, light, ThemeCtx, useT, type AppPage } from './theme';
+import { useT, useThemeToggle, type AppPage, pageToPath } from './theme';
 
 // ─── Static data ──────────────────────────────────────────────────
 
@@ -542,15 +543,12 @@ function MobileContent({ isDark }: { isDark: boolean }) {
 
 // ─── Reports page ─────────────────────────────────────────────────
 
-export default function Reports({ onNavigate }: { onNavigate: (p: AppPage) => void }) {
-  const [isDark,   setIsDark]   = useState(() => localStorage.getItem('eq-theme') !== 'light');
+export default function Reports() {
+  const { isDark, toggle } = useThemeToggle();
+  const t = useT();
+  const navigate = useNavigate();
+  const goTo = (page: AppPage) => navigate(pageToPath[page]);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  const t = isDark ? dark : light;
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('eq-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -558,29 +556,25 @@ export default function Reports({ onNavigate }: { onNavigate: (p: AppPage) => vo
     return () => window.removeEventListener('resize', handler);
   }, []);
 
-  const toggleTheme = () => setIsDark(p => !p);
-
   return (
-    <ThemeCtx.Provider value={t}>
-      <div data-theme={isDark ? 'dark' : 'light'} style={{
-        display:'flex',
-        flexDirection:isMobile ? 'column' : 'row',
-        ...(isMobile ? {height:'100vh', overflow:'hidden'} : {minHeight:'100%'}),
-        background:t.pageBg,
-      }}>
-        {isMobile ? (
-          <>
-            <MobileHeader isDark={isDark} onToggle={toggleTheme}/>
-            <MobileContent isDark={isDark}/>
-            <MobileBottomNav active="reportes" onNavigate={onNavigate}/>
-          </>
-        ) : (
-          <>
-            <Sidebar active="reportes" onNavigate={onNavigate}/>
-            <DesktopContent isDark={isDark} onToggleTheme={toggleTheme}/>
-          </>
-        )}
-      </div>
-    </ThemeCtx.Provider>
+    <div data-theme={isDark ? 'dark' : 'light'} style={{
+      display:'flex',
+      flexDirection:isMobile ? 'column' : 'row',
+      ...(isMobile ? {height:'100vh', overflow:'hidden'} : {minHeight:'100%'}),
+      background:t.pageBg,
+    }}>
+      {isMobile ? (
+        <>
+          <MobileHeader isDark={isDark} onToggle={toggle}/>
+          <MobileContent isDark={isDark}/>
+          <MobileBottomNav active="reportes" onNavigate={goTo}/>
+        </>
+      ) : (
+        <>
+          <Sidebar active="reportes" onNavigate={goTo}/>
+          <DesktopContent isDark={isDark} onToggleTheme={toggle}/>
+        </>
+      )}
+    </div>
   );
 }

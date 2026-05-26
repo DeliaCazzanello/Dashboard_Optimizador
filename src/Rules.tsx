@@ -5,7 +5,8 @@ import {
   LuBell, LuMoon, LuSun, LuUser,
   LuMove, LuBatteryCharging, LuWind,
 } from 'react-icons/lu';
-import { dark, light, ThemeCtx, useT, type AppPage } from './theme';
+import { useNavigate } from 'react-router-dom';
+import { useT, useThemeToggle, type AppPage, pageToPath } from './theme';
 
 // ─── Types & data ─────────────────────────────────────────────────
 
@@ -40,8 +41,32 @@ const parseSaving = (s: string) => parseFloat(s.replace('$','').replace('/mes','
 const FILTERS: FilterKey[] = ['Todas','Activas','Inactivas','Ahorro','Confort'];
 
 const DEVICES   = ['Aire Acondicionado','Televisor','Refrigerador','Lavadora','Calentador','Iluminación LED','Router WiFi','Monitor PC'];
-const CONDITIONS= ['Sin movimiento > 10 min','Horario programado','Hora pico (18:00–21:00)','Temperatura < umbral','Sensor de luz < 20%','Todos offline > 30 min'];
-const ACTIONS   = ['Apagar dispositivo','Reducir potencia 50%','Encender dispositivo','Ajustar temperatura','Activar modo ahorro'];
+const CONDITIONS = [
+  'Sin movimiento por más de 10 minutos',
+  'Sin movimiento por más de 30 minutos',
+  'Horario programado (todos los días)',
+  'Horario programado (días de semana)',
+  'Horario programado (fines de semana)',
+  'Hora pico de consumo (18:00 – 21:00)',
+  'Temperatura interior supera los 26°C',
+  'Temperatura interior baja de 18°C',
+  'Temperatura exterior menor a la interior',
+  'Nivel de luz ambiente menor al 20%',
+  'Todos los dispositivos offline por más de 30 min',
+  'Consumo total supera el límite mensual',
+];
+const ACTIONS = [
+  'Apagar dispositivo',
+  'Encender dispositivo',
+  'Reducir potencia al 50%',
+  'Reducir potencia al 30%',
+  'Ajustar temperatura a 24°C',
+  'Ajustar temperatura a 18°C',
+  'Activar modo ahorro de energía',
+  'Activar modo ausente',
+  'Enviar alerta de consumo elevado',
+  'Programar apagado en 15 minutos',
+];
 
 // ─── Toggle ───────────────────────────────────────────────────────
 
@@ -291,6 +316,76 @@ function SummaryCard({ rules }: { rules: Rule[] }) {
   );
 }
 
+// ─── Custom select ────────────────────────────────────────────────
+
+function CustomSelect({ value, onChange, options, placeholder }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
+}) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position:'relative', width:'100%' }}>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width:'100%', height:36, padding:'0 12px', borderRadius:8,
+          border:`1px solid ${t.cardBorder}`,
+          background:t.pageBg, color: value ? t.textPrimary : t.textTertiary,
+          fontSize:12, cursor:'pointer', boxSizing:'border-box',
+          display:'flex', alignItems:'center', justifyContent:'space-between', gap:8,
+          userSelect:'none',
+        }}
+      >
+        <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          {value || placeholder || 'Seleccionar...'}
+        </span>
+        <span style={{ flexShrink:0, fontSize:10, color:t.textTertiary, transform: open ? 'rotate(180deg)' : 'none', transition:'transform .15s' }}>▼</span>
+      </div>
+      {open && (
+        <div style={{
+          position:'absolute', top:'calc(100% + 4px)', left:0, right:0, zIndex:100,
+          background:t.cardBg, border:`1px solid ${t.cardBorder}`,
+          borderRadius:10, overflow:'hidden',
+          boxShadow:'0 8px 24px rgba(0,0,0,0.15)',
+          maxHeight:220, overflowY:'auto',
+        }}>
+          {options.map((opt, i) => (
+            <div
+              key={opt}
+              onClick={() => { onChange(opt); setOpen(false); }}
+              style={{
+                padding:'9px 12px', fontSize:12, cursor:'pointer',
+                color: value === opt ? '#3B82F6' : t.textPrimary,
+                background: value === opt ? (t.pageBg) : 'transparent',
+                fontWeight: value === opt ? 600 : 400,
+                borderBottom: i < options.length - 1 ? `1px solid ${t.divider}` : 'none',
+                transition:'background .1s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = t.navActiveBg)}
+              onMouseLeave={e => (e.currentTarget.style.background = value === opt ? t.pageBg : 'transparent')}
+            >
+              {opt}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Create rule form ─────────────────────────────────────────────
 
 function CreateRuleForm({ isDark, onAdd, nameRef, compact }: {
@@ -312,10 +407,6 @@ function CreateRuleForm({ isDark, onAdd, nameRef, compact }: {
     fontSize:12, outline:'none', boxSizing:'border-box',
     appearance:'none', WebkitAppearance:'none',
   };
-  const sel: React.CSSProperties = {
-    ...inp, color: t.textSecondary, cursor:'pointer',
-  };
-
   function handleSubmit() {
     if (!name.trim()) return;
     onAdd({
@@ -335,24 +426,15 @@ function CreateRuleForm({ isDark, onAdd, nameRef, compact }: {
     },
     {
       label:'Dispositivo objetivo',
-      el: <select style={sel} value={device} onChange={e => setDevice(e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {DEVICES.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>,
+      el: <CustomSelect value={device} onChange={setDevice} options={DEVICES}/>,
     },
     {
       label:'Condición de activación',
-      el: <select style={sel} value={condition} onChange={e => setCondition(e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {CONDITIONS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>,
+      el: <CustomSelect value={condition} onChange={setCondition} options={CONDITIONS}/>,
     },
     {
       label:'Acción a ejecutar',
-      el: <select style={sel} value={action} onChange={e => setAction(e.target.value)}>
-            <option value="">Seleccionar...</option>
-            {ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>,
+      el: <CustomSelect value={action} onChange={setAction} options={ACTIONS}/>,
     },
   ];
 
@@ -551,17 +633,14 @@ function MobileContent({ rules, isDark, filter, onToggleRule, onFilterChange, on
 
 // ─── Rules page ───────────────────────────────────────────────────
 
-export default function Rules({ onNavigate }: { onNavigate: (p: AppPage) => void }) {
-  const [isDark,   setIsDark]   = useState(() => localStorage.getItem('eq-theme') !== 'light');
+export default function Rules() {
+  const { isDark, toggle } = useThemeToggle();
+  const t = useT();
+  const navigate = useNavigate();
+  const goTo = (page: AppPage) => navigate(pageToPath[page]);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [rules,    setRules]    = useState(initRules);
   const [filter,   setFilter]   = useState<FilterKey>('Todas');
-  const t = isDark ? dark : light;
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('eq-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 768);
@@ -569,39 +648,36 @@ export default function Rules({ onNavigate }: { onNavigate: (p: AppPage) => void
     return () => window.removeEventListener('resize', h);
   }, []);
 
-  const toggleRule  = (id: number) => setRules(p => p.map(r => r.id === id ? {...r, on:!r.on} : r));
-  const toggleTheme = () => setIsDark(p => !p);
-  const addRule     = (r: Omit<Rule,'id'>) =>
+  const toggleRule = (id: number) => setRules(p => p.map(r => r.id === id ? {...r, on:!r.on} : r));
+  const addRule    = (r: Omit<Rule,'id'>) =>
     setRules(p => [...p, { ...r, id: p.length ? Math.max(...p.map(x => x.id)) + 1 : 1 }]);
 
   return (
-    <ThemeCtx.Provider value={t}>
-      <div data-theme={isDark ? 'dark' : 'light'} style={{
-        display:'flex',
-        flexDirection:isMobile ? 'column' : 'row',
-        ...(isMobile ? {height:'100vh', overflow:'hidden'} : {minHeight:'100%'}),
-        background:t.pageBg,
-      }}>
-        {isMobile ? (
-          <>
-            <MobileHeader isDark={isDark} onToggle={toggleTheme}/>
-            <MobileContent
-              rules={rules} isDark={isDark} filter={filter}
-              onToggleRule={toggleRule} onFilterChange={setFilter} onAddRule={addRule}
-            />
-            <MobileBottomNav active="reglas" onNavigate={onNavigate}/>
-          </>
-        ) : (
-          <>
-            <Sidebar active="reglas" onNavigate={onNavigate}/>
-            <DesktopContent
-              rules={rules} isDark={isDark} filter={filter}
-              onToggleRule={toggleRule} onToggleTheme={toggleTheme}
-              onFilterChange={setFilter} onAddRule={addRule}
-            />
-          </>
-        )}
-      </div>
-    </ThemeCtx.Provider>
+    <div data-theme={isDark ? 'dark' : 'light'} style={{
+      display:'flex',
+      flexDirection:isMobile ? 'column' : 'row',
+      ...(isMobile ? {height:'100vh', overflow:'hidden'} : {minHeight:'100%'}),
+      background:t.pageBg,
+    }}>
+      {isMobile ? (
+        <>
+          <MobileHeader isDark={isDark} onToggle={toggle}/>
+          <MobileContent
+            rules={rules} isDark={isDark} filter={filter}
+            onToggleRule={toggleRule} onFilterChange={setFilter} onAddRule={addRule}
+          />
+          <MobileBottomNav active="reglas" onNavigate={goTo}/>
+        </>
+      ) : (
+        <>
+          <Sidebar active="reglas" onNavigate={goTo}/>
+          <DesktopContent
+            rules={rules} isDark={isDark} filter={filter}
+            onToggleRule={toggleRule} onToggleTheme={toggle}
+            onFilterChange={setFilter} onAddRule={addRule}
+          />
+        </>
+      )}
+    </div>
   );
 }

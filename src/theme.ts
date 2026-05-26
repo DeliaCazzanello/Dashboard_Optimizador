@@ -112,5 +112,15 @@ export const light: typeof dark = {
 
 export type Theme = typeof dark;
 export type AppPage = 'dashboard' | 'devices' | 'reports' | 'rules';
+export const pageToPath: Record<AppPage, string> = {
+  dashboard:    '/',
+  devices:      '/dispositivos',
+  reports:      '/reportes',
+  rules:        '/reglas',
+};
 export const ThemeCtx = createContext<Theme>(dark);
 export const useT = () => useContext(ThemeCtx);
+
+export type ThemeToggleCtx = { isDark: boolean; toggle: () => void };
+export const ThemeToggleCtx = createContext<ThemeToggleCtx>({ isDark: true, toggle: () => {} });
+export const useThemeToggle = () => useContext(ThemeToggleCtx);

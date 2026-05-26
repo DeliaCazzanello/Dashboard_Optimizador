@@ -6,7 +6,8 @@ import {
   LuWind, LuTv, LuRefrigerator, LuFan, LuShowerHead, LuLamp, LuX,
   LuMonitor, LuWifi,
 } from 'react-icons/lu';
-import { dark, light, ThemeCtx, useT, type AppPage, type Theme } from './theme';
+import { useNavigate } from 'react-router-dom';
+import { useT, useThemeToggle, type AppPage, type Theme, pageToPath } from './theme';
 
 // ─── Devices data ─────────────────────────────────────────────────
 
@@ -659,17 +660,14 @@ function MobileContent({ devices, isDark, onToggleDevice, onOpenModal }: {
 
 // ─── Devices page ─────────────────────────────────────────────────
 
-export default function Devices({ onNavigate }: { onNavigate: (page: AppPage) => void }) {
-  const [isDark, setIsDark]     = useState(() => localStorage.getItem('eq-theme') !== 'light');
-  const [devices, setDevices]   = useState(initDevices);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+export default function Devices() {
+  const { isDark, toggle } = useThemeToggle();
+  const t = useT();
+  const navigate = useNavigate();
+  const goTo = (page: AppPage) => navigate(pageToPath[page]);
+  const [devices, setDevices]     = useState(initDevices);
+  const [isMobile, setIsMobile]   = useState(() => window.innerWidth < 768);
   const [showModal, setShowModal] = useState(false);
-  const t = isDark ? dark : light;
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('eq-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -678,44 +676,41 @@ export default function Devices({ onNavigate }: { onNavigate: (page: AppPage) =>
   }, []);
 
   const toggleDevice = (id: number) => setDevices(p => p.map(d => d.id === id ? {...d, on:!d.on} : d));
-  const toggleTheme  = () => setIsDark(p => !p);
   const addDevice    = (d: Omit<Device, 'id'>) => {
     setDevices(p => [...p, { ...d, id: p.length ? Math.max(...p.map(x => x.id)) + 1 : 1 }]);
     setShowModal(false);
   };
 
   return (
-    <ThemeCtx.Provider value={t}>
-      <div data-theme={isDark ? "dark" : "light"} style={{
-        display:"flex",
-        flexDirection:isMobile ? "column" : "row",
-        ...(isMobile ? {height:"100vh", overflow:"hidden"} : {minHeight:"100%"}),
-        background:t.pageBg,
-      }}>
-        {showModal && (
-          <RegisterModal isDark={isDark} onClose={() => setShowModal(false)} onAdd={addDevice}/>
-        )}
+    <div data-theme={isDark ? "dark" : "light"} style={{
+      display:"flex",
+      flexDirection:isMobile ? "column" : "row",
+      ...(isMobile ? {height:"100vh", overflow:"hidden"} : {minHeight:"100%"}),
+      background:t.pageBg,
+    }}>
+      {showModal && (
+        <RegisterModal isDark={isDark} onClose={() => setShowModal(false)} onAdd={addDevice}/>
+      )}
 
-        {isMobile ? (
-          <>
-            <MobileHeader isDark={isDark} onToggle={toggleTheme}/>
-            <MobileContent devices={devices} isDark={isDark} onToggleDevice={toggleDevice} onOpenModal={() => setShowModal(true)}/>
-            <MobileBottomNav active="dispositivos" onNavigate={onNavigate}/>
-          </>
-        ) : (
-          <>
-            <Sidebar active="dispositivos" onNavigate={onNavigate}/>
-            <DesktopContent
-              devices={devices}
-              isDark={isDark}
-              onToggleDevice={toggleDevice}
-              onToggleTheme={toggleTheme}
-              onNavigate={onNavigate}
-              onOpenModal={() => setShowModal(true)}
-            />
-          </>
-        )}
-      </div>
-    </ThemeCtx.Provider>
+      {isMobile ? (
+        <>
+          <MobileHeader isDark={isDark} onToggle={toggle}/>
+          <MobileContent devices={devices} isDark={isDark} onToggleDevice={toggleDevice} onOpenModal={() => setShowModal(true)}/>
+          <MobileBottomNav active="dispositivos" onNavigate={goTo}/>
+        </>
+      ) : (
+        <>
+          <Sidebar active="dispositivos" onNavigate={goTo}/>
+          <DesktopContent
+            devices={devices}
+            isDark={isDark}
+            onToggleDevice={toggleDevice}
+            onToggleTheme={toggle}
+            onNavigate={goTo}
+            onOpenModal={() => setShowModal(true)}
+          />
+        </>
+      )}
+    </div>
   );
 }
